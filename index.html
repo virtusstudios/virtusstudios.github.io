@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Display a map on a webpage</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+<link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
+<script type = "module" src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js"></script>
+<script type = "module" src="https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics.js"></script>
+<script type = "module" src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js"></script>
+
+<style>
+body { 
+    margin: 0; 
+    padding: 0; 
+}
+
+#map { 
+    position: absolute; 
+    top: 0; 
+    bottom: 0; 
+    width: 100%; 
+}
+
+
+</style>
+</head>
+
+<body>
+<div id="map"></div>
+<script type = "module">
+        
+    /* Firebase */
+
+      // Import the functions you need from the SDKs you need
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics.js";
+      import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js";
+
+      // TODO: Add SDKs for Firebase products that you want to use
+      // https://firebase.google.com/docs/web/setup#available-libraries
+    
+      // Your web app's Firebase configuration
+      // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+      const firebaseConfig = {
+        apiKey: "AIzaSyAo-6GtIKk9_XxAPprxEOXB-Hw4bd8sVr4",
+        authDomain: "fir-test-77a0e.firebaseapp.com",
+        databaseURL: "https://fir-test-77a0e-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "fir-test-77a0e",
+        storageBucket: "fir-test-77a0e.appspot.com",
+        messagingSenderId: "893057034712",
+        appId: "1:893057034712:web:0e0c1d081b302d9d2feaad",
+        measurementId: "G-H3RCB0T6PY"
+      };
+    
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const analytics = getAnalytics(app);
+      const firestore = getFirestore(app);
+
+      if (firestore) {
+        console.log("Firestore connected");
+      }
+      else {
+        console.error("Connection failed");
+      }
+
+
+    
+    /* Mapbox */
+    document.addEventListener("DOMContentLoaded", () => {
+
+        mapboxgl.accessToken = 'pk.eyJ1IjoiamFtZXMyNTk4IiwiYSI6ImNsbmFldWdrZjAyd2cyam83ZW9tZDdpNHcifQ.UwZsm-FCz36FhFil9g5vBg';
+
+        const map = new mapboxgl.Map({
+            container: 'map', // container ID
+
+            // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
+            style: 'mapbox://styles/james2598/clnafbdn903kj01r4fa5fdwba', // style URL
+
+            center: [-0.15, 51.5072], // starting position [lng, lat]
+
+            zoom: 10 // starting zoom
+        });
+
+        //let userID = "mapbox test";
+        
+        // function setUserID(newValue) {
+        //     userID = newValue;
+        // }
+
+        const urlString = new URLSearchParams(window.location.search);
+        const userID = urlString.get("userID") || "mapbox test";
+        
+        /* Firestore Data Get */
+        (async () => {
+
+            if (!firestore) {
+                return;
+            }
+
+            try {                
+                const querySnapshot = await getDocs(collection(firestore, "Senze Users/" + userID + "/projects"));
+                querySnapshot.forEach((doc) => {
+                    console.log(`${doc.id} => ${doc.data()}`);
+                    const data = doc.data();
+                        
+                    const postcodeData = data.postcode;
+
+                    (async () => {
+
+                        const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${postcodeData}.json?access_token=${mapboxgl.accessToken}`);
+                        const conversion = await response.json();
+
+                        if (conversion.features && conversion.features.length > 0) {
+                            const coordinates = conversion.features[0].center;
+
+                            const marker = new mapboxgl.Marker()
+                            .setLngLat(coordinates)
+                            .addTo(map);
+                        }
+                    })();
+                });
+            }   catch (error) {
+                    console.error("Error found: ", error);
+                }
+        })();
+    });
+
+        
+</script>
+
+</body>
+</html>
+                
